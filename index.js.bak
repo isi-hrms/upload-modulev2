@@ -1,0 +1,136 @@
+/**
+ * @format
+ */
+
+const multer = require('multer');
+const axios = require('axios');
+const FormData = require('form-data');
+const fs = require('fs');
+const path = require('path');
+
+// eslint-disable-next-line import/no-unresolved
+const uploadConfig = require('../../../config/upload');
+
+const { fileTmp } = uploadConfig;
+
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, fileTmp);
+    },
+    filename: (req, file, cb) => {
+        cb(null, file.originalname);
+    },
+});
+
+function fileFilter(req, file, cb) {
+    const msg = {
+        header: {
+            message: 'Error',
+            status: 500,
+            access: null,
+        },
+        data: null,
+    };
+
+    if (file) {
+        // only running with content-type multipart/form
+        const splitFilename = file.originalname.split(' ');
+        const joinFilename = splitFilename.join('_');
+        const splitExt = joinFilename.split('.');
+        const ext = splitExt[1];
+        const checkExt = uploadConfig.fileExt.indexOf(ext.toLowerCase());
+
+        if (splitExt.length > 2) {
+            msg.header.message = uploadConfig.message.error.filename;
+            return cb(msg);
+        }
+        if (checkExt < 0) {
+            msg.header.message = uploadConfig.message.error.supportExt;
+            return cb(msg);
+        }
+        if (file.size > uploadConfig.fileSize) {
+            msg.header.message = uploadConfig.message.error.size;
+            return cb(msg);
+        }
+
+        // eslint-disable-next-line no-param-reassign
+        file.data = {
+            filename: `${splitExt[0]}_${Date.now()}.${ext}`,
+            path: uploadConfig.filePath,
+        };
+        // eslint-disable-next-line no-param-reassign
+        file.originalname = file.data.filename;
+
+        return cb(null, true);
+    }
+    // request not multipart
+    return cb(null, false);
+}
+
+const uploads = multer({
+    fileFilter,
+    storage,
+    limits: uploadConfig.limits,
+});
+// const actionUpload = ['replace', 'save'];
+
+module.exports = {
+    files_upload: uploads,
+    multer_err: multer.MulterError,
+    sendToFileManager: (data, cb) => {
+        const bodyFormData = new FormData();
+        if (data.action === 'save') {
+            bodyFormData.append(
+                'filebuffer',
+                fs.createReadStream(`${fileTmp}/${data.filename}`),
+            );
+        } else if (data.action === 'replace') {
+            bodyFormData.append(
+                'filebuffer',
+                fs.createReadStream(`${fileTmp}/${data.currentFilename}`),
+            );
+        }
+
+        bodyFormData.append('filepath', `${data.path}${data.filename}`);
+        bodyFormData.append('action', data.action);
+
+        axios
+            .create({
+                headers: bodyFormData.getHeaders(),
+            })
+            .post(uploadConfig.urlStore, bodyFormData)
+            .then((response) => {
+                if (response.data.header.status === 200) {
+                    // fs.unlinkSync(`${fileTmp}/*`);
+                    fs.readdir(`${fileTmp}`, (err, files) => {
+                        if (err) throw err;
+
+                        // eslint-disable-next-line no-restricted-syntax
+                        for (const file of files) {
+                            fs.unlink(path.join(`${fileTmp}`, file), (errs) => {
+                                if (errs) throw errs;
+                            });
+                        }
+                    });
+                    return cb(null, data);
+                }
+                return cb(true, 'Upload Failed');
+            })
+            .catch((error) => {
+                return cb(true, error);
+            });
+    },
+    getFileManager: (filePATH, cb) => {
+        axios
+            .get(uploadConfig.urlGet, {
+                // headers: { 'Content-Type': ['application/x-www-form-urlencoded','application/json'] },
+                data: filePATH,
+            })
+            .then((resbody) => {
+                if (resbody) {
+                    return cb(null, resbody);
+                }
+                return cb('Get file failed', null);
+            });
+    },
+};

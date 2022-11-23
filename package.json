@@ -1,0 +1,55 @@
+{
+  "name": "@isi-hrms/upload-filesv2",
+  "version": "0.1.4",
+  "description": "module upload file HRMS",
+  "main": "index.js",
+  "dependencies": {
+    "axios": "^0.21.1",
+    "dotenv": "^10.0.0",
+    "eslint": "^6.8.0",
+    "form-data": "^3.0.0",
+    "multer": "^1.4.2"
+  },
+  "devDependencies": {
+    "chai": "^4.2.0",
+    "chai-http": "^4.3.0",
+    "eslint": "^6.8.0",
+    "eslint-config-airbnb-base": "^14.0.0",
+    "eslint-config-prettier": "^6.10.0",
+    "eslint-plugin-import": "^2.20.1",
+    "eslint-plugin-prettier": "^3.1.2",
+    "js-beautify": "^1.10.3",
+    "mkdirp": "^1.0.4",
+    "mocha": "^7.1.0",
+    "prettier": "1.19.1",
+    "standard-version": "^7.1.0"
+  },
+  "scripts": {
+    "test": "node index.js",
+    "preinstall": "mkdir configUpload",
+    "install": "cp lib/.env ../../.env.example && cp -r lib/configUpload ../../configUpload",
+    "dev": "npm i && index.js",
+    "lint": "eslint .",
+    "release": "standard-version",
+    "start": "node index.js",
+    "format": "npx prettier --write \"**/*.js\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/isi-hrms/upload-modulev2.git"
+  },
+  "author": "inovasi Solusi International - HRMS team",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/isi-hrms/upload-modulev2/pulls"
+  },
+  "homepage": "https://github.com/isi-hrms/upload-modulev2/blob/master/README.md",
+  "keywords": [
+    "hrms",
+    "upload",
+    "hrms"
+  ],
+  "directories": {
+    "lib": "lib"
+  }
+}
